@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  name              String?
+  phone             String?  @unique
+  email             String?  @unique
+  authCode          String?  @unique // Código de autenticação de 6 dígitos
+  password          String?  // Senha (será hasheada)
+  role              UserRole @default(OPERATOR)
+  isActive          Boolean  @default(true)
+  lastLogin         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+enum UserRole {
+  ROOT      // Pode configurar sistema e ver tudo
+  ADMIN     // Pode ver tudo menos configurações do sistema
+  SUBADMIN  // Pode operar e gerenciar produtos/categorias
+  OPERATOR  // Pode apenas fazer pedidos e operações básicas
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String   // Nome do ícone do Lucide React
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  image       String?  // Caminho da imagem
+  isActive    Boolean  @default(true)
+  isFavorite  Boolean  @default(false)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
+}
+
+model PaymentMethod {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  icon        String   // Emoji ou nome do ícone
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+}
+
+model Area {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tables      Table[]
+  orders      Order[]
+}
+
+model Table {
+  id          String   @id @default(cuid())
+  number      String   @unique // Número da mesa (ex: "1", "2", "VIP-1")
+  name        String   // Nome da mesa (ex: "Mesa 1", "Mesa VIP")
+  capacity    Int      @default(4) // Capacidade da mesa
+  areaId      String
+  area        Area     @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  isActive    Boolean  @default(true)
+  isOccupied  Boolean  @default(false) // Se a mesa está ocupada
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique // Número do pedido (ex: #001)
+  customerName    String?
+  isDelivery      Boolean       @default(false)
+  areaId          String?       // ID da área do restaurante
+  area            Area?         @relation(fields: [areaId], references: [id])
+  tableId         String?       // ID da mesa
+  table           Table?        @relation(fields: [tableId], references: [id])
+  status          OrderStatus   @default(NEW)
+  totalAmount     Float
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  amountReceived  Float?        // Para pagamentos em dinheiro
+  change          Float?        // Troco
+  isPaid          Boolean       @default(false)
+  isCompleted     Boolean       @default(false)
+  notes           String?       // Observações do pedido
+  cancellationReason String?    // Motivo do cancelamento
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  orderItems      OrderItem[]
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+  notes      String?  // Observações do item
+  createdAt  DateTime @default(now())
+}
+
+model CompanySettings {
+  id          String   @id @default(cuid())
+  name        String   // Nome da empresa
+  location    String   // Localização/Endereço
+  phone       String   // Telefone
+  localNumber String   // Número do local
+  nuit        String   // NUIT (Número Único de Identificação Tributária)
+  isConfigured Boolean @default(false) // Se as configurações foram feitas
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum OrderStatus {
+  NEW
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
