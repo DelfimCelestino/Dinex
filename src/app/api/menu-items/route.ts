@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, price, image, categoryId } = body;
+    const { name, description, price, image, categoryId, hasStock, stockQuantity, minStockAlert } = body;
 
     // Validação
     if (!name || !price || !categoryId) {
@@ -121,6 +121,9 @@ export async function POST(request: NextRequest) {
             description: description ?? "Sem descrição",
             price,
             image,
+            hasStock: hasStock || false,
+            stockQuantity: hasStock ? stockQuantity : null,
+            minStockAlert: hasStock ? minStockAlert : null,
             updatedAt: new Date()
           },
           include: {
@@ -150,6 +153,9 @@ export async function POST(request: NextRequest) {
         price,
         image,
         categoryId,
+        hasStock: hasStock || false,
+        stockQuantity: hasStock ? stockQuantity : null,
+        minStockAlert: hasStock ? minStockAlert : null,
       },
       include: {
         category: {

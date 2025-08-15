@@ -19,6 +19,10 @@ export interface MenuItem {
   categoryId?: string // ID da categoria no banco
   isFavorite?: boolean
   dbId?: string
+  // Campos de estoque
+  hasStock?: boolean
+  stockQuantity?: number | null
+  minStockAlert?: number | null
 }
 
 interface MenuItemCardProps {
@@ -67,12 +71,36 @@ export function MenuItemCard({
     return `/api/images/uploads/${imagePath}`;
   };
 
+  // Função para verificar se há estoque disponível
+  const hasAvailableStock = () => {
+    if (!item.hasStock || item.stockQuantity === null || item.stockQuantity === undefined) return true;
+    return item.stockQuantity > 0;
+  };
+
+  // Função para verificar se está com baixo estoque
+  const isLowStock = () => {
+    if (!item.hasStock || item.stockQuantity === null || item.stockQuantity === undefined || item.minStockAlert === null || item.minStockAlert === undefined) return false;
+    return item.stockQuantity <= item.minStockAlert;
+  };
+
+  // Função para verificar se está sem estoque
+  const isOutOfStock = () => {
+    if (!item.hasStock || item.stockQuantity === null || item.stockQuantity === undefined) return false;
+    return item.stockQuantity <= 0;
+  };
+
   return (
     <div 
       className={`relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-gray-100 rounded-lg border cursor-pointer group ${
         isAdded ? 'ring-2 ring-orange-500 shadow-lg scale-105' : ''
+      } ${
+        isOutOfStock() ? 'opacity-60 cursor-not-allowed' : ''
       }`}
-      onClick={() => onAddToCart(item)}
+      onClick={() => {
+        if (!isOutOfStock()) {
+          onAddToCart(item);
+        }
+      }}
     >
       <div className="relative">
         <img
@@ -80,6 +108,8 @@ export function MenuItemCard({
           alt={item.name}
           className={`w-full h-32 object-cover transition-all duration-300 ${
             isAdded ? 'brightness-125 scale-110' : 'group-hover:brightness-110'
+          } ${
+            isOutOfStock() ? 'grayscale' : ''
           }`}
           onError={(e) => {
             // Fallback para placeholder se a imagem falhar
@@ -151,6 +181,34 @@ export function MenuItemCard({
             {quantity}
           </div>
         )}
+
+        {/* Stock Status Badge */}
+        {item.hasStock && item.stockQuantity !== null && (
+          <div className="absolute bottom-2 left-2 z-40">
+            {isOutOfStock() ? (
+              <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                  SEM ESTOQUE
+                </div>
+              </div>
+            ) : isLowStock() ? (
+              <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                  {item.stockQuantity} UN
+                </div>
+              </div>
+            ) : (
+              <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                  {item.stockQuantity} UN
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         {/* Success Checkmark when added */}
         {isAdded && (
@@ -162,11 +220,23 @@ export function MenuItemCard({
             </div>
           </div>
         )}
+
+        {/* Out of Stock Overlay */}
+        {isOutOfStock() && (
+          <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center z-30">
+            <div className="bg-red-500 text-white rounded-lg p-2 text-center">
+              <div className="text-lg font-bold">SEM ESTOQUE</div>
+              <div className="text-xs">Indisponível</div>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="p-4">
         <h3 className={`font-semibold text-gray-800 mb-1 truncate transition-colors ${
           isAdded ? 'text-green-600' : 'group-hover:text-orange-600'
+        } ${
+          isOutOfStock() ? 'text-gray-500' : ''
         }`}>
           {item.name}
         </h3>
@@ -182,11 +252,26 @@ export function MenuItemCard({
           {/* Add to Cart Indicator */}
           <div className={`flex items-center gap-2 transition-colors ${
             isAdded ? 'text-green-500' : 'text-orange-500 group-hover:text-orange-600'
+          } ${
+            isOutOfStock() ? 'text-gray-400' : ''
           }`}>
-            <Plus className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {isAdded ? 'Adicionado!' : 'Adicionar'}
-            </span>
+            {isOutOfStock() ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span className="text-sm font-medium">
+                  Indisponível
+                </span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {isAdded ? 'Adicionado!' : 'Adicionar'}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -52,6 +52,9 @@ interface CartItem {
   quantity: number;
   image: string | null;
   dbId?: string; // ID do banco de dados
+  hasStock?: boolean;
+  stockQuantity?: number | null;
+  minStockAlert?: number | null;
 }
 
 // Função para obter role do usuário via API
@@ -139,6 +142,20 @@ export function MenuGrid() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastItemRef = useRef<HTMLDivElement | null>(null);
 
+  // Função helper para calcular estoque disponível considerando o carrinho
+  const getAvailableStock = (item: MenuItem) => {
+    if (!item.hasStock || item.stockQuantity === null || item.stockQuantity === undefined) {
+      return null; // Sem controle de estoque
+    }
+    
+    const cartQuantity = cart.find(cartItem => cartItem.id === item.id)?.quantity || 0;
+    const availableStock = item.stockQuantity - cartQuantity;
+    
+
+    
+    return availableStock;
+  };
+
   // Função helper para converter dados do banco
   const convertMenuData = (menuData: any[]) => {
     return menuData.map((item: any, index: number) => {
@@ -166,6 +183,10 @@ export function MenuGrid() {
         categoryId: item.categoryId || item.category.id, // ID da categoria no banco
         isFavorite: item.isFavorite,
         dbId: item.id, // ID original do banco
+        // Campos de estoque
+        hasStock: item.hasStock || false,
+        stockQuantity: item.stockQuantity,
+        minStockAlert: item.minStockAlert,
       } as MenuItem;
     });
   };
@@ -262,6 +283,20 @@ export function MenuGrid() {
     if (newQuantity <= 0) {
       removeFromCart(itemId);
     } else {
+      // Verificar estoque se o item tem controle de estoque
+      const menuItem = menuItems.find(item => item.id === itemId);
+      if (menuItem && menuItem.hasStock && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
+        // Para updateCartItemQuantity, verificamos se a nova quantidade não excede o estoque total
+        if (newQuantity > menuItem.stockQuantity) {
+          toast.error("Estoque insuficiente!", {
+            description: `Só há ${menuItem.stockQuantity} unidade(s) disponível(is) de ${menuItem.name}`,
+            duration: 3000,
+            position: "top-left",
+          });
+          return;
+        }
+      }
+      
       setCart(
         cart.map((item) =>
           item.id === itemId ? { ...item, quantity: newQuantity } : item
@@ -300,6 +335,30 @@ export function MenuGrid() {
   };
 
   const addToCart = (item: (typeof menuItems)[0]) => {
+    // Verificar se o item tem controle de estoque e se há estoque disponível
+    const availableStock = getAvailableStock(item);
+    
+    if (availableStock !== null) {
+      if (availableStock <= 0) {
+        toast.error("Produto sem estoque!", {
+          description: `${item.name} está indisponível no momento`,
+          duration: 3000,
+          position: "top-left",
+        });
+        return;
+      }
+      
+      // Verificar se há estoque suficiente para adicionar mais uma unidade
+      if (availableStock < 1) {
+        toast.error("Estoque insuficiente!", {
+          description: `Só há ${availableStock} unidade(s) disponível(is) de ${item.name}`,
+          duration: 3000,
+          position: "top-left",
+        });
+        return;
+      }
+    }
+
     const existingItem = cart.find((cartItem) => cartItem.id === item.id);
 
     if (existingItem) {
@@ -484,6 +543,9 @@ export function MenuGrid() {
     price: number;
     image?: string | null;
     categoryId: string;
+    hasStock?: boolean;
+    stockQuantity?: number | null;
+    minStockAlert?: number | null;
   }) => {
     try {
       const response = await fetch("/api/menu-items", {
@@ -522,6 +584,9 @@ export function MenuGrid() {
     price: number;
     image?: string | null;
     categoryId: string;
+    hasStock?: boolean;
+    stockQuantity?: number | null;
+    minStockAlert?: number | null;
   }) => {
     if (!editingMenuItem) return;
 
@@ -643,6 +708,27 @@ export function MenuGrid() {
 
   const handleConfirmKitchen = async () => {
     try {
+      // Verificar estoque antes de criar o pedido
+      const stockErrors: string[] = [];
+      
+      for (const cartItem of cart) {
+        const menuItem = menuItems.find(item => item.id === cartItem.id);
+        if (menuItem && menuItem.hasStock && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
+          if (menuItem.stockQuantity < cartItem.quantity) {
+            stockErrors.push(`${menuItem.name}: só há ${menuItem.stockQuantity} unidade(s) disponível(is), mas foram solicitadas ${cartItem.quantity}`);
+          }
+        }
+      }
+      
+      if (stockErrors.length > 0) {
+        toast.error("Estoque insuficiente para alguns produtos!", {
+          description: stockErrors.join('\n'),
+          duration: 5000,
+          position: "top-left",
+        });
+        return;
+      }
+
       // Criar pedido sem pagamento (status NEW)
       const orderData = {
         customerName: customerName.trim() || null,
@@ -668,6 +754,19 @@ export function MenuGrid() {
 
       if (response.ok) {
         const order = await response.json();
+        
+        // Atualizar estoque localmente
+        const updatedMenuItems = menuItems.map(item => {
+          const cartItem = cart.find(ci => ci.id === item.id);
+          if (cartItem && item.hasStock && item.stockQuantity !== null && item.stockQuantity !== undefined) {
+            return {
+              ...item,
+              stockQuantity: item.stockQuantity - cartItem.quantity
+            };
+          }
+          return item;
+        });
+        setMenuItems(updatedMenuItems);
         
         // Tocar som de doorbell
         playDoorbellSound();
@@ -808,6 +907,27 @@ export function MenuGrid() {
         return;
       }
 
+      // Verificar estoque antes de adicionar itens
+      const stockErrors: string[] = [];
+      
+      for (const cartItem of cart) {
+        const menuItem = menuItems.find(item => item.id === cartItem.id);
+        if (menuItem && menuItem.hasStock && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
+          if (menuItem.stockQuantity < cartItem.quantity) {
+            stockErrors.push(`${menuItem.name}: só há ${menuItem.stockQuantity} unidade(s) disponível(is), mas foram solicitadas ${cartItem.quantity}`);
+          }
+        }
+      }
+      
+      if (stockErrors.length > 0) {
+        toast.error("Estoque insuficiente para alguns produtos!", {
+          description: stockErrors.join('\n'),
+          duration: 5000,
+          position: "top-left",
+        });
+        return;
+      }
+
       // Preparar itens para adicionar
       const newItems = cart.map(item => ({
         menuItemId: item.dbId || item.id.toString(),
@@ -834,6 +954,20 @@ export function MenuGrid() {
 
       if (response.ok) {
         const updatedOrder = await response.json();
+        
+        // Atualizar estoque localmente
+        const updatedMenuItems = menuItems.map(item => {
+          const cartItem = cart.find(ci => ci.id === item.id);
+          if (cartItem && item.hasStock && item.stockQuantity !== null && item.stockQuantity !== undefined) {
+            return {
+              ...item,
+              stockQuantity: item.stockQuantity - cartItem.quantity
+            };
+          }
+          return item;
+        });
+        setMenuItems(updatedMenuItems);
+        
         toast.success("Itens adicionados ao pedido existente!", {
           description: `Pedido ${updatedOrder.orderNumber} foi atualizado`,
           duration: 3000,
@@ -883,6 +1017,27 @@ export function MenuGrid() {
     }
 
     try {
+      // Verificar estoque antes de criar o pedido
+      const stockErrors: string[] = [];
+      
+      for (const cartItem of cart) {
+        const menuItem = menuItems.find(item => item.id === cartItem.id);
+        if (menuItem && menuItem.hasStock && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
+          if (menuItem.stockQuantity < cartItem.quantity) {
+            stockErrors.push(`${menuItem.name}: só há ${menuItem.stockQuantity} unidade(s) disponível(is), mas foram solicitadas ${cartItem.quantity}`);
+          }
+        }
+      }
+      
+      if (stockErrors.length > 0) {
+        toast.error("Estoque insuficiente para alguns produtos!", {
+          description: stockErrors.join('\n'),
+          duration: 5000,
+          position: "top-left",
+        });
+        return;
+      }
+
       const orderData = {
         customerName: customerName.trim() || null,
         isDelivery: isTakeaway,
@@ -907,6 +1062,20 @@ export function MenuGrid() {
 
       if (response.ok) {
         const order = await response.json();
+        
+        // Atualizar estoque localmente
+        const updatedMenuItems = menuItems.map(item => {
+          const cartItem = cart.find(ci => ci.id === item.id);
+          if (cartItem && item.hasStock && item.stockQuantity !== null && item.stockQuantity !== undefined) {
+            return {
+              ...item,
+              stockQuantity: item.stockQuantity - cartItem.quantity
+            };
+          }
+          return item;
+        });
+        setMenuItems(updatedMenuItems);
+        
         toast("Pedido pago e finalizado com sucesso!", {
           description: `Pedido ${order.orderNumber} foi entregue`,
       duration: 3000,
@@ -2065,6 +2234,9 @@ export function MenuGrid() {
           price: editingMenuItem.price,
           image: editingMenuItem.image,
           categoryId: editingMenuItem.categoryId,
+          hasStock: editingMenuItem.hasStock,
+          stockQuantity: editingMenuItem.stockQuantity,
+          minStockAlert: editingMenuItem.minStockAlert,
         } : undefined}
         isEditing={!!editingMenuItem}
       />

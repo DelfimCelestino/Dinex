@@ -123,6 +123,9 @@ interface Order {
       name: string;
       description: string | null;
       image: string | null;
+      hasStock: boolean;
+      stockQuantity: number | null;
+      minStockAlert: number | null;
     };
   }>;
 }
@@ -168,6 +171,29 @@ export default function OrdersPage() {
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(100);
+
+  // Função helper para verificar estoque disponível
+  const checkStockAvailability = async (menuItemId: string, requestedQuantity: number) => {
+    try {
+      const response = await fetch(`/api/menu-items/${menuItemId}`);
+      if (response.ok) {
+        const menuItem = await response.json();
+        if (menuItem.hasStock && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
+          if (menuItem.stockQuantity < requestedQuantity) {
+            return {
+              available: false,
+              availableStock: menuItem.stockQuantity,
+              message: `Só há ${menuItem.stockQuantity} unidade(s) disponível(is) de ${menuItem.name}`
+            };
+          }
+        }
+        return { available: true };
+      }
+    } catch (error) {
+      console.error("Erro ao verificar estoque:", error);
+    }
+    return { available: true }; // Se não conseguir verificar, permitir
+  };
 
   // Carregar pedidos do banco
   useEffect(() => {
@@ -257,6 +283,30 @@ export default function OrdersPage() {
 
   const handleCancelOrder = async (orderId: string, reason: string) => {
     try {
+      // Encontrar o pedido para restaurar o estoque
+      const orderToCancel = orders.find(o => o.id === orderId);
+      if (orderToCancel) {
+        // Restaurar estoque para todos os itens do pedido
+        for (const orderItem of orderToCancel.orderItems) {
+          try {
+            const stockResponse = await fetch(`/api/menu-items/${orderItem.menuItem.id}/stock`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                action: "restore", 
+                quantity: orderItem.quantity 
+              }),
+            });
+            
+            if (!stockResponse.ok) {
+              console.error("Erro ao restaurar estoque:", await stockResponse.text());
+            }
+          } catch (stockError) {
+            console.error("Erro ao restaurar estoque:", stockError);
+          }
+        }
+      }
+
       const response = await fetch(`/api/orders/${orderId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -384,6 +434,81 @@ export default function OrdersPage() {
   // Persist item quantity changes immediately
   const persistOrderItems = async (orderId: string, items: Array<{ id: string; quantity: number; unitPrice: number }>) => {
     try {
+      // Encontrar o pedido atual para comparar quantidades
+      const currentOrder = orders.find(o => o.id === orderId);
+      if (!currentOrder) return;
+
+      // Calcular diferenças de quantidade para atualizar estoque
+      for (const newItem of items) {
+        const currentItem = currentOrder.orderItems.find(oi => oi.id === newItem.id);
+        if (currentItem && currentItem.quantity !== newItem.quantity) {
+          const quantityDiff = currentItem.quantity - newItem.quantity;
+          
+          // Se a quantidade foi reduzida, restaurar estoque
+          if (quantityDiff > 0) {
+            try {
+              const stockResponse = await fetch(`/api/menu-items/${currentItem.menuItem.id}/stock`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                  action: "restore", 
+                  quantity: quantityDiff 
+                }),
+              });
+              
+              if (!stockResponse.ok) {
+                console.error("Erro ao atualizar estoque:", await stockResponse.text());
+              }
+            } catch (stockError) {
+              console.error("Erro ao atualizar estoque:", stockError);
+            }
+          }
+          // Se a quantidade foi aumentada, verificar e reduzir estoque
+          else if (quantityDiff < 0) {
+            // Verificar se há estoque suficiente antes de consumir
+            try {
+              const menuItemResponse = await fetch(`/api/menu-items/${currentItem.menuItem.id}`);
+              if (menuItemResponse.ok) {
+                const menuItem = await menuItemResponse.json();
+                if (menuItem.hasStock && menuItem.stockQuantity !== null && menuItem.stockQuantity !== undefined) {
+                  if (menuItem.stockQuantity < Math.abs(quantityDiff)) {
+                    toast.error(`Estoque insuficiente para ${menuItem.name}!`, {
+                      description: `Só há ${menuItem.stockQuantity} unidade(s) disponível(is), mas foram solicitadas ${Math.abs(quantityDiff)}`,
+                      duration: 4000,
+                      position: "top-left",
+                    });
+                    return; // Não continuar se não há estoque suficiente
+                  }
+                }
+              }
+            } catch (error) {
+              console.error("Erro ao verificar estoque:", error);
+            }
+            
+            try {
+              const stockResponse = await fetch(`/api/menu-items/${currentItem.menuItem.id}/stock`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                  action: "consume", 
+                  quantity: Math.abs(quantityDiff) 
+                }),
+              });
+              
+              if (!stockResponse.ok) {
+                const error = await stockResponse.json();
+                toast.error(`Erro ao atualizar estoque: ${error.error || 'Estoque insuficiente'}`);
+                return; // Não continuar se não conseguir atualizar o estoque
+              }
+            } catch (stockError) {
+              console.error("Erro ao atualizar estoque:", stockError);
+              toast.error("Erro ao atualizar estoque");
+              return;
+            }
+          }
+        }
+      }
+
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -418,6 +543,28 @@ export default function OrdersPage() {
           duration: 6000,
         });
         return;
+      }
+
+      // Encontrar o item que será removido para restaurar o estoque
+      const itemToRemove = orderToUpdate.orderItems.find(item => item.id === itemId);
+      if (itemToRemove) {
+        // Atualizar estoque no banco de dados
+        try {
+          const stockResponse = await fetch(`/api/menu-items/${itemToRemove.menuItem.id}/stock`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              action: "restore", 
+              quantity: itemToRemove.quantity 
+            }),
+          });
+          
+          if (!stockResponse.ok) {
+            console.error("Erro ao atualizar estoque:", await stockResponse.text());
+          }
+        } catch (stockError) {
+          console.error("Erro ao atualizar estoque:", stockError);
+        }
       }
 
       const newItems = orderToUpdate.orderItems.filter(item => item.id !== itemId);
@@ -1055,6 +1202,72 @@ export default function OrdersPage() {
                                 </div>
                               )}
 
+                              {/* Stock Warnings */}
+                              {((selectedOrder && selectedOrder.id === order.id) ? selectedOrder.orderItems : order.orderItems)?.some(item => 
+                                item.menuItem.hasStock && item.menuItem.stockQuantity !== null && item.menuItem.stockQuantity <= 0
+                              ) && (
+                                <div className="space-y-3">
+                                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                                    ⚠️ Avisos de Estoque
+                                  </h3>
+                                  <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <span className="text-red-600 text-xs font-bold">!</span>
+                                      </div>
+                                      <div className="text-sm text-red-800">
+                                        <p className="font-medium mb-1">Alguns itens estão sem estoque:</p>
+                                        <ul className="list-disc list-inside space-y-1">
+                                          {((selectedOrder && selectedOrder.id === order.id) ? selectedOrder.orderItems : order.orderItems)?.filter(item => 
+                                            item.menuItem.hasStock && item.menuItem.stockQuantity !== null && item.menuItem.stockQuantity <= 0
+                                          ).map(item => (
+                                            <li key={item.id} className="text-red-700">
+                                              {item.menuItem.name} - {item.quantity} unidade(s) solicitada(s)
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Low Stock Warnings */}
+                              {((selectedOrder && selectedOrder.id === order.id) ? selectedOrder.orderItems : order.orderItems)?.some(item => 
+                                item.menuItem.hasStock && 
+                                item.menuItem.stockQuantity !== null && 
+                                item.menuItem.stockQuantity > 0 && 
+                                item.menuItem.stockQuantity <= (item.menuItem.minStockAlert || 0)
+                              ) && (
+                                <div className="space-y-3">
+                                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                                    ⚠️ Estoque Baixo
+                                  </h3>
+                                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <span className="text-yellow-600 text-xs font-bold">!</span>
+                                      </div>
+                                      <div className="text-sm text-yellow-800">
+                                        <p className="font-medium mb-1">Alguns itens estão com estoque baixo:</p>
+                                        <ul className="list-disc list-inside space-y-1">
+                                          {((selectedOrder && selectedOrder.id === order.id) ? selectedOrder.orderItems : order.orderItems)?.filter(item => 
+                                            item.menuItem.hasStock && 
+                                            item.menuItem.stockQuantity !== null && 
+                                            item.menuItem.stockQuantity > 0 && 
+                                            item.menuItem.stockQuantity <= (item.menuItem.minStockAlert || 0)
+                                          ).map(item => (
+                                            <li key={item.id} className="text-yellow-700">
+                                              {item.menuItem.name} - {item.menuItem.stockQuantity} unidade(s) restante(s)
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Food Items - Editable */}
                               <div className="space-y-3">
                                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
@@ -1079,7 +1292,13 @@ export default function OrdersPage() {
                                     {(selectedOrder && selectedOrder.id === order.id ? selectedOrder.orderItems : order.orderItems)?.map((item, index) => (
                                     <div
                                       key={item.id}
-                                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-all duration-200"
+                                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 ${
+                                        item.menuItem.hasStock && item.menuItem.stockQuantity !== null && item.menuItem.stockQuantity <= 0
+                                          ? "bg-red-50 border-red-200 hover:bg-red-100"
+                                          : item.menuItem.hasStock && item.menuItem.stockQuantity !== null && item.menuItem.stockQuantity <= (item.menuItem.minStockAlert || 0)
+                                          ? "bg-yellow-50 border-yellow-200 hover:bg-yellow-100"
+                                          : "bg-gray-50 border-gray-100 hover:bg-gray-100"
+                                      }`}
                                     >
                                       <img
                                         src={item.menuItem.image ? 
@@ -1096,9 +1315,29 @@ export default function OrdersPage() {
                                         }}
                                       />
                                       <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium text-gray-800 text-sm truncate">
-                                          {item.menuItem.name}
-                                        </h4>
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-medium text-gray-800 text-sm truncate">
+                                            {item.menuItem.name}
+                                          </h4>
+                                          {/* Indicador de estoque */}
+                                          {item.menuItem.hasStock && item.menuItem.stockQuantity !== null && (
+                                            <div className="flex items-center gap-1">
+                                              {item.menuItem.stockQuantity <= 0 ? (
+                                                <Badge className="bg-red-100 text-red-700 text-xs px-2 py-0.5">
+                                                  Sem estoque
+                                                </Badge>
+                                              ) : item.menuItem.stockQuantity <= (item.menuItem.minStockAlert || 0) ? (
+                                                <Badge className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5">
+                                                  Estoque baixo
+                                                </Badge>
+                                              ) : (
+                                                <Badge className="bg-green-100 text-green-700 text-xs px-2 py-0.5">
+                                                  {item.menuItem.stockQuantity} UN
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
                                         <div className="flex items-center gap-2 mt-2">
                                           <Button
                                             variant="ghost"
@@ -1129,10 +1368,36 @@ export default function OrdersPage() {
                                             variant="ghost"
                                             size="sm"
                                             className="w-6 h-6 p-0 hover:bg-gray-200 h-auto"
-                                            disabled={order.status === 'DELIVERED' || order.status === 'CANCELLED'}
-                                            onClick={() => {
+                                            disabled={
+                                              order.status === 'DELIVERED' || 
+                                              order.status === 'CANCELLED' ||
+                                              (item.menuItem.hasStock && 
+                                               item.menuItem.stockQuantity !== null && 
+                                               item.menuItem.stockQuantity <= item.quantity)
+                                            }
+                                            title={
+                                              item.menuItem.hasStock && 
+                                              item.menuItem.stockQuantity !== null && 
+                                              item.menuItem.stockQuantity <= item.quantity
+                                                ? `Estoque insuficiente: só há ${item.menuItem.stockQuantity} unidade(s) disponível(is)`
+                                                : "Aumentar quantidade"
+                                            }
+                                            onClick={async () => {
                                               const newItems = [...(((selectedOrder && selectedOrder.id === order.id) ? selectedOrder.orderItems : order.orderItems) || [])];
-                                              newItems[index].quantity += 1;
+                                              const newQuantity = newItems[index].quantity + 1;
+                                              
+                                              // Verificar estoque antes de aumentar
+                                              const stockCheck = await checkStockAvailability(item.menuItem.id, newQuantity);
+                                              if (!stockCheck.available) {
+                                                toast.error("Estoque insuficiente!", {
+                                                  description: stockCheck.message,
+                                                  duration: 3000,
+                                                  position: "top-left",
+                                                });
+                                                return;
+                                              }
+                                              
+                                              newItems[index].quantity = newQuantity;
                                               const total = newItems.reduce((s, it) => s + it.unitPrice * it.quantity, 0);
                                               if (selectedOrder && selectedOrder.id === order.id) {
                                                 setSelectedOrder({ ...selectedOrder, orderItems: newItems, totalAmount: total });

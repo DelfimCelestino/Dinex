@@ -80,7 +80,6 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    console.log("Configurações salvas:", updatedSettings);
     return NextResponse.json(updatedSettings);
   } catch (error) {
     console.error("Erro ao atualizar configurações da empresa:", error);

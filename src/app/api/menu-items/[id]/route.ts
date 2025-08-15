@@ -46,12 +46,15 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { name, description, price, image, categoryId } = body as {
+    const { name, description, price, image, categoryId, hasStock, stockQuantity, minStockAlert } = body as {
       name: string;
       description?: string;
       price: number;
       image?: string;
       categoryId: string;
+      hasStock?: boolean;
+      stockQuantity?: number | null;
+      minStockAlert?: number | null;
     };
 
     // Validação
@@ -153,6 +156,9 @@ export async function PUT(
         price,
         image: finalImage || undefined,
         categoryId,
+        hasStock: hasStock || false,
+        stockQuantity: hasStock ? stockQuantity : null,
+        minStockAlert: hasStock ? minStockAlert : null,
       },
       include: {
         category: {

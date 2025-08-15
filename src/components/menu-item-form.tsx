@@ -37,6 +37,9 @@ interface MenuItemFormProps {
     price: number;
     image?: string | null;
     categoryId: string;
+    hasStock?: boolean;
+    stockQuantity?: number | null;
+    minStockAlert?: number | null;
   }) => void;
   initialData?: {
     name: string;
@@ -44,6 +47,9 @@ interface MenuItemFormProps {
     price: number;
     image?: string | null;
     categoryId: string;
+    hasStock?: boolean;
+    stockQuantity?: number | null;
+    minStockAlert?: number | null;
   };
   isEditing?: boolean;
 }
@@ -60,6 +66,9 @@ export function MenuItemForm({
   const [price, setPrice] = useState(initialData?.price?.toString() || "");
   const [image, setImage] = useState<string | null>(initialData?.image || null);
   const [categoryId, setCategoryId] = useState(initialData?.categoryId || "");
+  const [hasStock, setHasStock] = useState(initialData?.hasStock || false);
+  const [stockQuantity, setStockQuantity] = useState(initialData?.stockQuantity?.toString() || "");
+  const [minStockAlert, setMinStockAlert] = useState(initialData?.minStockAlert?.toString() || "");
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -100,6 +109,9 @@ export function MenuItemForm({
       setPrice(initialData?.price?.toString() || "");
       setImage(initialData?.image || null);
       setCategoryId(initialData?.categoryId || "");
+      setHasStock(initialData?.hasStock || false);
+      setStockQuantity(initialData?.stockQuantity?.toString() || "");
+      setMinStockAlert(initialData?.minStockAlert?.toString() || "");
       setWasSaved(false);
     }
   }, [isOpen, initialData]);
@@ -173,6 +185,24 @@ export function MenuItemForm({
       return;
     }
 
+    // Validar campos de estoque
+    if (hasStock) {
+      if (!stockQuantity || parseInt(stockQuantity) < 0) {
+        toast.error("Quantidade em estoque deve ser um número positivo");
+        return;
+      }
+      
+      if (minStockAlert && parseInt(minStockAlert) < 0) {
+        toast.error("Alerta de estoque mínimo deve ser um número positivo");
+        return;
+      }
+      
+      if (minStockAlert && parseInt(minStockAlert) > parseInt(stockQuantity)) {
+        toast.error("Alerta de estoque mínimo não pode ser maior que a quantidade em estoque");
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       await onSubmit({
@@ -181,6 +211,9 @@ export function MenuItemForm({
         price: parseFloat(price),
         image: image || null, // Enviar null quando não há imagem
         categoryId,
+        hasStock,
+        stockQuantity: hasStock ? (stockQuantity ? parseInt(stockQuantity) : null) : null,
+        minStockAlert: hasStock && minStockAlert ? parseInt(minStockAlert) : null,
       });
       setWasSaved(true);
       onClose();
@@ -223,8 +256,8 @@ export function MenuItemForm({
         }
       }}
     >
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="sticky top-0 bg-white z-10 pb-4 border-b border-gray-100">
           <DialogTitle>
             {isEditing ? "Editar Item" : "Novo Item do Menu"}
           </DialogTitle>
@@ -363,8 +396,78 @@ export function MenuItemForm({
             )}
           </div>
 
+          {/* Controle de Estoque */}
+          <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="hasStock"
+                checked={hasStock}
+                onChange={(e) => setHasStock(e.target.checked)}
+                className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+              />
+              <Label htmlFor="hasStock" className="text-sm font-medium">
+                🏪 Controle de Estoque
+              </Label>
+            </div>
+            
+            {hasStock && (
+              <div className="space-y-3 pl-6">
+                <div className="space-y-2">
+                  <Label htmlFor="stockQuantity" className="text-sm font-medium">
+                    Quantidade em Estoque
+                  </Label>
+                  <Input
+                    id="stockQuantity"
+                    type="number"
+                    min="0"
+                    value={stockQuantity}
+                    onChange={(e) => setStockQuantity(e.target.value)}
+                    placeholder="Ex: 50"
+                    className="w-full"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Deixe vazio para estoque ilimitado
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="minStockAlert" className="text-sm font-medium">
+                    Alerta de Estoque Mínimo
+                  </Label>
+                  <Input
+                    id="minStockAlert"
+                    type="number"
+                    min="0"
+                    value={minStockAlert}
+                    onChange={(e) => setMinStockAlert(e.target.value)}
+                    placeholder="Ex: 10"
+                    className="w-full"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Quantidade mínima antes de alertar baixo estoque
+                  </p>
+                </div>
+                
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <span className="text-lg">💡</span>
+                    <div>
+                      <p className="font-medium">Como funciona:</p>
+                      <p className="text-blue-600 text-xs">
+                        • Verde: Estoque normal<br/>
+                        • Amarelo: Baixo estoque (≤ alerta mínimo)<br/>
+                        • Vermelho: Sem estoque (≤ 0)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Botões */}
-          <div className="flex gap-2 pt-4">
+          <div className="flex gap-2 pt-4 sticky bottom-0 bg-white border-t border-gray-100 mt-6">
             <Button
               type="button"
               variant="outline"

@@ -104,6 +104,9 @@ export async function GET(request: NextRequest) {
                 description: true,
                 image: true,
                 price: true,
+                hasStock: true,
+                stockQuantity: true,
+                minStockAlert: true,
               },
             },
           },
@@ -164,6 +167,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verificar estoque antes de criar o pedido
+    const stockErrors: string[] = [];
+    
+    for (const item of items) {
+      const menuItem = await prisma.menuItem.findUnique({
+        where: { id: item.menuItemId },
+        select: {
+          id: true,
+          name: true,
+          hasStock: true,
+          stockQuantity: true,
+          minStockAlert: true,
+        },
+      });
+
+      if (menuItem && menuItem.hasStock && menuItem.stockQuantity !== null) {
+        if (menuItem.stockQuantity < item.quantity) {
+          stockErrors.push(`${menuItem.name}: só há ${menuItem.stockQuantity} unidade(s) disponível(is), mas foram solicitadas ${item.quantity}`);
+        }
+      }
+    }
+
+    if (stockErrors.length > 0) {
+      return NextResponse.json(
+        { error: "Estoque insuficiente para alguns produtos", details: stockErrors },
+        { status: 400 }
+      );
+    }
+
     // Calcular total do pedido
     const totalAmount = items.reduce((sum: number, item: any) => {
       return sum + (item.unitPrice * item.quantity);
@@ -203,10 +235,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Criar itens do pedido
+    // Criar itens do pedido e consumir estoque
     await Promise.all(
-      items.map((item: any) =>
-        prisma.orderItem.create({
+      items.map(async (item: any) => {
+        // Criar item do pedido
+        await prisma.orderItem.create({
           data: {
             orderId: order.id,
             menuItemId: item.menuItemId,
@@ -215,8 +248,22 @@ export async function POST(request: NextRequest) {
             totalPrice: item.unitPrice * item.quantity,
             notes: item.notes?.trim() || null,
           },
-        })
-      )
+        });
+
+        // Consumir estoque
+        const menuItem = await prisma.menuItem.findUnique({
+          where: { id: item.menuItemId },
+        });
+
+        if (menuItem && menuItem.hasStock && menuItem.stockQuantity !== null) {
+          await prisma.menuItem.update({
+            where: { id: item.menuItemId },
+            data: {
+              stockQuantity: menuItem.stockQuantity - item.quantity,
+            },
+          });
+        }
+      })
     );
 
     // Retornar pedido completo
