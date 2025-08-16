@@ -38,7 +38,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { name, location, phone, localNumber, nuit } = body;
 
-    console.log("Dados recebidos:", body);
 
     // Validação básica
     if (!name || !location || !phone || !localNumber || !nuit) {

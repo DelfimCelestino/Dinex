@@ -1,362 +1,321 @@
 @echo off
-echo ========================================
-echo    CONFIGURACAO DO BANCO - DINEX
-echo ========================================
+chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+cls
+echo.
+echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+echo.
+echo    ═══════════════════════════════════════════════════════════
+echo    🚀  CONFIGURAÇÃO DO BANCO - DINEX  🚀
+echo    ═══════════════════════════════════════════════════════════
+echo.
+echo    💡  Este script configura o banco de dados do sistema DineX
+echo    📁  Pasta atual: %CD%
+echo.
+echo    ═══════════════════════════════════════════════════════════
 echo.
 
-REM Criar arquivo de log
-set "logFile=setup-database-log.txt"
-echo ======================================== > "%logFile%"
-echo    LOG CONFIGURACAO BANCO - DINEX >> "%logFile%"
-echo    Data: %date% %time% >> "%logFile%"
-echo ======================================== >> "%logFile%"
-echo. >> "%logFile%"
-
 REM Verificar se o Node.js está instalado
-echo [1/6] Verificando Node.js...
-echo [1/6] Verificando Node.js... >> "%logFile%"
+echo    [1/4] 🔍 Verificando Node.js...
 node --version >nul 2>&1
 if %errorlevel% neq 0 (
+    cls
     echo.
-    echo ========================================
-    echo    ERRO: NODE.JS NAO INSTALADO!
-    echo ========================================
+    echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+    echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+    echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+    echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+    echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+    echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
     echo.
-    echo Baixe e instale o Node.js de: https://nodejs.org/
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO: NODE.JS NÃO INSTALADO!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ERRO: NODE.JS NAO INSTALADO! >> "%logFile%"
-    echo Baixe e instale o Node.js de: https://nodejs.org/ >> "%logFile%"
-    echo. >> "%logFile%"
-    echo ======================================== >> "%logFile%"
-    echo    FALHA NA CONFIGURACAO >> "%logFile%"
-    echo ======================================== >> "%logFile%"
+    echo    🌐  Baixe e instale o Node.js de: https://nodejs.org/
     echo.
-    echo Log salvo em: %logFile%
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO! CONFIGURAÇÃO FALHOU!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ========================================
-    echo    ERRO! CONFIGURACAO FALHOU!
-    echo ========================================
-    echo.
-    echo Pressione qualquer tecla para fechar...
+    echo    💡  Pressione qualquer tecla para fechar...
     pause >nul
     exit /b 1
 )
 
-echo [OK] Node.js encontrado: 
+echo    ✅  Node.js encontrado: 
 node --version
-echo [OK] Node.js encontrado >> "%logFile%"
-node --version >> "%logFile%"
-echo. >> "%logFile%"
 echo.
 
 REM Verificar se a pasta prisma existe
-echo [2/6] Verificando pasta Prisma...
-echo [2/6] Verificando pasta Prisma... >> "%logFile%"
+echo    [2/4] 🔍 Verificando pasta Prisma...
 if not exist "prisma" (
+    cls
     echo.
-    echo ========================================
-    echo    ERRO: PASTA PRISMA NAO ENCONTRADA!
-    echo ========================================
+    echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+    echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+    echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+    echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+    echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+    echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
     echo.
-    echo A pasta prisma com o schema nao foi encontrada.
-    echo Verifique se todos os arquivos foram copiados corretamente.
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO: PASTA PRISMA NÃO ENCONTRADA!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ERRO: PASTA PRISMA NAO ENCONTRADA! >> "%logFile%"
-    echo A pasta prisma com o schema nao foi encontrada. >> "%logFile%"
-    echo. >> "%logFile%"
-    echo ======================================== >> "%logFile%"
-    echo    FALHA NA CONFIGURACAO >> "%logFile%"
-    echo ======================================== >> "%logFile%"
+    echo    📁  A pasta prisma com o schema não foi encontrada.
+    echo    💡  Verifique se todos os arquivos foram copiados corretamente.
     echo.
-    echo Log salvo em: %logFile%
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO! CONFIGURAÇÃO FALHOU!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ========================================
-    echo    ERRO! CONFIGURACAO FALHOU!
-    echo ========================================
-    echo.
-    echo Pressione qualquer tecla para fechar...
+    echo    💡  Pressione qualquer tecla para fechar...
     pause >nul
     exit /b 1
 )
 
 if not exist "prisma\schema.prisma" (
+    cls
     echo.
-    echo ========================================
-    echo    ERRO: SCHEMA PRISMA NAO ENCONTRADO!
-    echo ========================================
+    echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+    echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+    echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+    echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+    echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+    echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
     echo.
-    echo O arquivo prisma\schema.prisma nao foi encontrado.
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO: SCHEMA PRISMA NÃO ENCONTRADO!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ERRO: SCHEMA PRISMA NAO ENCONTRADO! >> "%logFile%"
-    echo O arquivo prisma\schema.prisma nao foi encontrado. >> "%logFile%"
-    echo. >> "%logFile%"
-    echo ======================================== >> "%logFile%"
-    echo    FALHA NA CONFIGURACAO >> "%logFile%"
-    echo ======================================== >> "%logFile%"
+    echo    📄  O arquivo prisma\schema.prisma não foi encontrado.
     echo.
-    echo Log salvo em: %logFile%
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO! CONFIGURAÇÃO FALHOU!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ========================================
-    echo    ERRO! CONFIGURACAO FALHOU!
-    echo ========================================
-    echo.
-    echo Pressione qualquer tecla para fechar...
+    echo    💡  Pressione qualquer tecla para fechar...
     pause >nul
     exit /b 1
 )
 
-echo [OK] Pasta e schema Prisma encontrados
-echo [OK] Pasta e schema Prisma encontrados >> "%logFile%"
-echo. >> "%logFile%"
+echo    ✅  Pasta e schema Prisma encontrados
 echo.
 
 REM Verificar se o arquivo .env existe
-echo [3/6] Verificando arquivo .env...
-echo [3/6] Verificando arquivo .env... >> "%logFile%"
+echo    [3/4] 🔍 Verificando arquivo .env...
 if not exist ".env" (
+    cls
     echo.
-    echo ========================================
-    echo    ERRO: ARQUIVO .ENV NAO ENCONTRADO!
-    echo ========================================
+    echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+    echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+    echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+    echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+    echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+    echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
     echo.
-    echo Crie um arquivo .env com as configuracoes do banco
-    echo Exemplo:
-    echo DATABASE_URL="postgresql://usuario:senha@localhost:5432/dinex"
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO: ARQUIVO .ENV NÃO ENCONTRADO!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo Copie config-example.txt para .env e configure.
+    echo    🔧  Crie um arquivo .env com as configurações do banco
+    echo    📝  Exemplo:
+    echo    DATABASE_URL="postgresql://usuario:senha@localhost:5432/dinex"
     echo.
-    echo ERRO: ARQUIVO .ENV NAO ENCONTRADO! >> "%logFile%"
-    echo Crie um arquivo .env com as configuracoes do banco >> "%logFile%"
-    echo. >> "%logFile%"
-    echo ======================================== >> "%logFile%"
-    echo    FALHA NA CONFIGURACAO >> "%logFile%"
-    echo ======================================== >> "%logFile%"
+    echo    💡  Copie config-example.txt para .env e configure.
     echo.
-    echo Log salvo em: %logFile%
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO! CONFIGURAÇÃO FALHOU!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ========================================
-    echo    ERRO! CONFIGURACAO FALHOU!
-    echo ========================================
-    echo.
-    echo Pressione qualquer tecla para fechar...
+    echo    💡  Pressione qualquer tecla para fechar...
     pause >nul
     exit /b 1
 )
 
-echo [OK] Arquivo .env encontrado
-echo [OK] Arquivo .env encontrado >> "%logFile%"
-echo. >> "%logFile%"
+echo    ✅  Arquivo .env encontrado
 echo.
 
 REM Verificar se as dependências estão instaladas
-echo [4/6] Verificando dependencias...
-echo [4/6] Verificando dependencias... >> "%logFile%"
+echo    [4/4] 🔍 Verificando dependências...
 if not exist "node_modules" (
-    echo Instalando dependencias de PRODUCAO apenas...
-    echo Instalando dependencias de PRODUCAO apenas... >> "%logFile%"
-    npm install --production --no-optional
+    echo    📦  Instalando dependências de PRODUÇÃO apenas...
+    echo    ⏳  Isso pode demorar alguns minutos...
+    echo.
+    call npm install --production --no-optional
     if %errorlevel% neq 0 (
+        cls
         echo.
-        echo ========================================
-        echo    ERRO: FALHA AO INSTALAR DEPENDENCIAS!
-        echo ========================================
+        echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+        echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+        echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+        echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+        echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+        echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
         echo.
-        echo Execute primeiro: instalar.bat
+        echo    ═══════════════════════════════════════════════════════════
+        echo    ❌  ERRO: FALHA AO INSTALAR DEPENDÊNCIAS!  ❌
+        echo    ═══════════════════════════════════════════════════════════
         echo.
-        echo ERRO: FALHA AO INSTALAR DEPENDENCIAS! >> "%logFile%"
-        echo Execute primeiro: instalar.bat >> "%logFile%"
-        echo. >> "%logFile%"
-        echo ======================================== >> "%logFile%"
-        echo    FALHA NA CONFIGURACAO >> "%logFile%"
-        echo ======================================== >> "%logFile%"
+        echo    💡  Execute primeiro: instalar.bat
         echo.
-        echo Log salvo em: %logFile%
+        echo    ═══════════════════════════════════════════════════════════
+        echo    ❌  ERRO! CONFIGURAÇÃO FALHOU!  ❌
+        echo    ═══════════════════════════════════════════════════════════
         echo.
-        echo ========================================
-        echo    ERRO! CONFIGURACAO FALHOU!
-        echo ========================================
-        echo.
-        echo Pressione qualquer tecla para fechar...
+        echo    💡  Pressione qualquer tecla para fechar...
         pause >nul
         exit /b 1
     )
-    echo [OK] Dependencias de PRODUCAO instaladas com sucesso!
-    echo [OK] Dependencias de PRODUCAO instaladas com sucesso! >> "%logFile%"
-    echo. >> "%logFile%"
+    echo    ✅  Dependências de PRODUÇÃO instaladas com sucesso!
     echo.
 ) else (
-    echo [OK] Dependencias ja instaladas
-    echo [OK] Dependencias ja instaladas >> "%logFile%"
-    echo. >> "%logFile%"
+    echo    ✅  Dependências já instaladas
     echo.
 )
 
 REM Gerar cliente Prisma
-echo [5/6] Gerando cliente Prisma...
-echo [5/6] Gerando cliente Prisma... >> "%logFile%"
-npx prisma generate
+echo    [5/5] 🔧 Gerando cliente Prisma...
+echo    ⏳  Gerando cliente Prisma (pode demorar alguns segundos)...
+call npx.cmd prisma generate
 if %errorlevel% neq 0 (
+    cls
     echo.
-    echo ========================================
-    echo    ERRO: FALHA AO GERAR CLIENTE PRISMA!
-    echo ========================================
+    echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+    echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+    echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+    echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+    echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+    echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
     echo.
-    echo Possiveis causas:
-    echo - Schema do Prisma corrompido
-    echo - Dependencias nao instaladas corretamente
-    echo - Erro de sintaxe no schema
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO: FALHA AO GERAR CLIENTE PRISMA!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ERRO: FALHA AO GERAR CLIENTE PRISMA! >> "%logFile%"
-    echo Possiveis causas: >> "%logFile%"
-    echo - Schema do Prisma corrompido >> "%logFile%"
-    echo - Dependencias nao instaladas corretamente >> "%logFile%"
-    echo - Erro de sintaxe no schema >> "%logFile%"
-    echo. >> "%logFile%"
-    echo ======================================== >> "%logFile%"
-    echo    FALHA NA CONFIGURACAO >> "%logFile%"
-    echo ======================================== >> "%logFile%"
+    echo    🔍  Possíveis causas:
+    echo    - Schema do Prisma corrompido
+    echo    - Dependências não instaladas corretamente
+    echo    - Erro de sintaxe no schema
     echo.
-    echo Log salvo em: %logFile%
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO! CONFIGURAÇÃO FALHOU!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ========================================
-    echo    ERRO! CONFIGURACAO FALHOU!
-    echo ========================================
-    echo.
-    echo Pressione qualquer tecla para fechar...
+    echo    💡  Pressione qualquer tecla para fechar...
     pause >nul
     exit /b 1
 )
-echo [OK] Cliente Prisma gerado com sucesso!
-echo [OK] Cliente Prisma gerado com sucesso! >> "%logFile%"
-echo. >> "%logFile%"
+echo    ✅  Cliente Prisma gerado com sucesso!
 echo.
 
 REM Executar migrações
-echo [6/6] Executando migracoes do banco...
-echo [6/6] Executando migracoes do banco... >> "%logFile%"
-npx prisma migrate deploy
+echo    [6/6] 🚀 Executando migrações do banco...
+echo    ⏳  Executando migrações (pode demorar alguns segundos)...
+call npx.cmd prisma migrate deploy
 if %errorlevel% neq 0 (
+    cls
     echo.
-    echo ========================================
-    echo    ERRO: FALHA AO EXECUTAR MIGRACOES!
-    echo ========================================
+    echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+    echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+    echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+    echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+    echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+    echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
     echo.
-    echo Possiveis causas:
-    echo - Banco de dados nao esta rodando
-    echo - Credenciais incorretas no arquivo .env
-    echo - Conexao com o banco falhou
-    echo - Banco nao existe ainda
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO: FALHA AO EXECUTAR MIGRAÇÕES!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo Verifique se o PostgreSQL esta rodando e as credenciais.
+    echo    🔍  Possíveis causas:
+    echo    - Banco de dados não está rodando
+    echo    - Credenciais incorretas no arquivo .env
+    echo    - Conexão com o banco falhou
+    echo    - Banco não existe ainda
     echo.
-    echo ERRO: FALHA AO EXECUTAR MIGRACOES! >> "%logFile%"
-    echo Possiveis causas: >> "%logFile%"
-    echo - Banco de dados nao esta rodando >> "%logFile%"
-    echo - Credenciais incorretas no arquivo .env >> "%logFile%"
-    echo - Conexao com o banco falhou >> "%logFile%"
-    echo - Banco nao existe ainda >> "%logFile%"
-    echo. >> "%logFile%"
-    echo Verifique se o PostgreSQL esta rodando e as credenciais. >> "%logFile%"
-    echo. >> "%logFile%"
-    echo ======================================== >> "%logFile%"
-    echo    FALHA NA CONFIGURACAO >> "%logFile%"
-    echo ======================================== >> "%logFile%"
+    echo    💡  Verifique se o PostgreSQL está rodando e as credenciais.
     echo.
-    echo Log salvo em: %logFile%
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO! CONFIGURAÇÃO FALHOU!  ❌
+    echo    ═══════════════════════════════════════════════════════════
     echo.
-    echo ========================================
-    echo    ERRO! CONFIGURACAO FALHOU!
-    echo ========================================
-    echo.
-    echo Pressione qualquer tecla para fechar...
+    echo    💡  Pressione qualquer tecla para fechar...
     pause >nul
     exit /b 1
 )
-echo [OK] Migracoes executadas com sucesso!
-echo [OK] Migracoes executadas com sucesso! >> "%logFile%"
-echo. >> "%logFile%"
+echo    ✅  Migrações executadas com sucesso!
 echo.
 
-REM Executar seed (opcional)
-echo.
-set /p runSeed="Deseja executar o seed para popular o banco? (s/n): "
-if /i "%runSeed%"=="s" (
+REM Executar seed automaticamente
+echo    [7/7] 🌱  Executando seed do banco...
+echo    ⏳  Executando seed (pode demorar alguns segundos)...
+call npx.cmd prisma db seed
+if %errorlevel% neq 0 (
+    cls
     echo.
-    echo Executando seed...
-    echo Executando seed... >> "%logFile%"
-    npx prisma db seed
-    if %errorlevel% neq 0 (
-        echo.
-        echo ========================================
-        echo    ERRO: FALHA AO EXECUTAR SEED!
-        echo ========================================
-        echo.
-        echo Possiveis causas:
-        echo - Banco nao configurado corretamente
-        echo - Arquivo seed.ts corrompido
-        echo - Dependencias de seed nao instaladas
-        echo.
-        echo ERRO: FALHA AO EXECUTAR SEED! >> "%logFile%"
-        echo Possiveis causas: >> "%logFile%"
-        echo - Banco nao configurado corretamente >> "%logFile%"
-        echo - Arquivo seed.ts corrompido >> "%logFile%"
-        echo - Dependencias de seed nao instaladas >> "%logFile%"
-        echo. >> "%logFile%"
-        echo ======================================== >> "%logFile%"
-        echo    FALHA NA CONFIGURACAO >> "%logFile%"
-        echo ======================================== >> "%logFile%"
-        echo.
-        echo Log salvo em: %logFile%
-        echo.
-        echo ========================================
-        echo    ERRO! CONFIGURACAO FALHOU!
-        echo ========================================
-        echo.
-        echo Pressione qualquer tecla para fechar...
-        pause >nul
-        exit /b 1
-    )
-    echo [OK] Seed executado com sucesso!
-    echo [OK] Seed executado com sucesso! >> "%logFile%"
-    echo. >> "%logFile%"
+    echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+    echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+    echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+    echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+    echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+    echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
     echo.
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO: FALHA AO EXECUTAR SEED!  ❌
+    echo    ═══════════════════════════════════════════════════════════
+    echo.
+    echo    🔍  Possíveis causas:
+    echo    - Banco não configurado corretamente
+    echo    - Arquivo seed.ts corrompido
+    echo    - Dependências de seed não instaladas
+    echo.
+    echo    ═══════════════════════════════════════════════════════════
+    echo    ❌  ERRO! CONFIGURAÇÃO FALHOU!  ❌
+    echo    ═══════════════════════════════════════════════════════════
+    echo.
+    echo    💡  Pressione qualquer tecla para fechar...
+    pause >nul
+    exit /b 1
 )
-
-echo.
-echo ========================================
-echo    CONFIGURACAO CONCLUIDA COM SUCESSO!
-echo ========================================
-echo.
-echo [OK] Node.js verificado
-echo [OK] Pasta Prisma encontrada
-echo [OK] Arquivo .env configurado
-echo [OK] Dependencias instaladas
-echo [OK] Cliente Prisma gerado
-echo [OK] Migracoes executadas
+echo    ✅  Seed executado com sucesso!
 echo.
 
-echo ======================================== >> "%logFile%"
-echo    CONFIGURACAO CONCLUIDA COM SUCESSO! >> "%logFile%"
-echo ======================================== >> "%logFile%"
-echo. >> "%logFile%"
-echo [OK] Node.js verificado >> "%logFile%"
-echo [OK] Pasta Prisma encontrada >> "%logFile%"
-echo [OK] Arquivo .env configurado >> "%logFile%"
-echo [OK] Dependencias instaladas >> "%logFile%"
-echo [OK] Cliente Prisma gerado >> "%logFile%"
-echo [OK] Migracoes executadas >> "%logFile%"
-echo. >> "%logFile%"
+cls
+echo.
+echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+echo.
+echo    ═══════════════════════════════════════════════════════════
+echo    🎉  CONFIGURAÇÃO CONCLUÍDA COM SUCESSO!  🎉
+echo    ═══════════════════════════════════════════════════════════
+echo.
+echo    ✅  Node.js verificado
+echo    ✅  Pasta Prisma encontrada
+echo    ✅  Arquivo .env configurado
+echo    ✅  Dependências instaladas
+echo    ✅  Cliente Prisma gerado
+echo    ✅  Migrações executadas
+echo    ✅  Seed executado
+echo.
 
-echo Agora voce pode:
-echo 1. Executar: npm start
-echo 2. Usar o script run-standalone.bat para modo fullscreen
+echo    💡  Agora você pode:
+echo    1. Executar: npm start
+echo    2. Usar o script run-standalone.bat para modo fullscreen
 echo.
-echo Log salvo em: %logFile%
+echo    ═══════════════════════════════════════════════════════════
+echo    🎯  SUCESSO! CONFIGURAÇÃO COMPLETA!  🎯
+echo    ═══════════════════════════════════════════════════════════
 echo.
-echo ========================================
-echo    SUCESSO! CONFIGURACAO COMPLETA!
-echo ========================================
-echo.
-echo Pressione qualquer tecla para fechar...
+echo    💡  Pressione qualquer tecla para fechar...
 pause >nul
 exit /b 0

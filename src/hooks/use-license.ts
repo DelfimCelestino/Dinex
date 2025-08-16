@@ -118,6 +118,20 @@ export function useLicense(): UseLicenseReturn {
         // Verificar se a licença expirou
         const now = new Date();
         const expiresAt = new Date(result.license.expiresAt);
+        const issuedAt = new Date(result.license.issuedAt);
+        
+        // 🔒 NOVA VERIFICAÇÃO: Detectar se a data atual é anterior à emissão
+        if (now < issuedAt) {
+          console.error('🚨 Data do sistema anterior à emissão da licença! Possível manipulação.');
+          setIsLicenseValid(false);
+          setLicenseData(null);
+          clearLicenseFromStorage();
+          if (showToast) {
+            toast.error('Data do sistema inválida! Possível manipulação detectada.');
+          }
+          return;
+        }
+        
         if (expiresAt <= now) {
           setIsLicenseValid(false);
           setLicenseData(null);
@@ -188,10 +202,10 @@ export function useLicense(): UseLicenseReturn {
   useEffect(() => {
     if (!isLicenseValid) return;
 
-    // Verificar a cada 6 horas em vez de 1 hora
+    // 🔒 VALIDAÇÃO MAIS FREQUENTE: A cada 30 minutos para detectar manipulações
     const interval = setInterval(() => {
       checkLicenseStatus(false); // Sem toast na validação periódica
-    }, 6 * 60 * 60 * 1000); // 6 horas
+    }, 30 * 60 * 1000); // 30 minutos
 
     return () => clearInterval(interval);
   }, [isLicenseValid]); // Removida dependência de checkLicenseStatus
@@ -216,6 +230,17 @@ export function useLicense(): UseLicenseReturn {
     const checkExpiration = () => {
       const now = new Date();
       const expiresAt = new Date(licenseData.expiresAt);
+      const issuedAt = new Date(licenseData.issuedAt);
+      
+      // 🔒 NOVA VERIFICAÇÃO: Detectar se a data atual é anterior à emissão
+      if (now < issuedAt) {
+        console.error('🚨 Data do sistema anterior à emissão da licença! Possível manipulação.');
+        setIsLicenseValid(false);
+        setLicenseData(null);
+        clearLicenseFromStorage();
+        toast.error('Data do sistema inválida! Possível manipulação detectada.');
+        return;
+      }
       
       if (expiresAt <= now) {
         setIsLicenseValid(false);
@@ -231,6 +256,46 @@ export function useLicense(): UseLicenseReturn {
     // Verificar imediatamente
     checkExpiration();
 
+    return () => clearInterval(interval);
+  }, [licenseData, isLicenseValid, clearLicenseFromStorage]);
+
+  // 🔒 NOVA FUNCIONALIDADE: Detectar manipulação de data do sistema
+  useEffect(() => {
+    if (!licenseData || !isLicenseValid) return;
+
+    let lastKnownTime = Date.now();
+    let timeDriftCount = 0;
+    const MAX_TIME_DRIFT = 3; // Máximo de 3 detecções de manipulação
+
+    const detectTimeManipulation = () => {
+      const currentTime = Date.now();
+      const expectedTime = lastKnownTime + (5 * 60 * 1000); // 5 minutos
+      const timeDiff = Math.abs(currentTime - expectedTime);
+      
+      // Se a diferença for maior que 10 minutos, pode ser manipulação
+      if (timeDiff > 10 * 60 * 1000) {
+        timeDriftCount++;
+        console.warn(`⚠️ Possível manipulação de data detectada! (${timeDriftCount}/${MAX_TIME_DRIFT})`);
+        
+        if (timeDriftCount >= MAX_TIME_DRIFT) {
+          console.error('🚨 Manipulação de data confirmada! Bloqueando sistema...');
+          setIsLicenseValid(false);
+          setLicenseData(null);
+          clearLicenseFromStorage();
+          toast.error('Manipulação de data detectada! Sistema bloqueado por segurança.');
+          return;
+        }
+      } else {
+        // Reset do contador se não houver manipulação
+        timeDriftCount = Math.max(0, timeDriftCount - 1);
+      }
+      
+      lastKnownTime = currentTime;
+    };
+
+    // Verificar a cada 5 minutos
+    const interval = setInterval(detectTimeManipulation, 5 * 60 * 1000);
+    
     return () => clearInterval(interval);
   }, [licenseData, isLicenseValid, clearLicenseFromStorage]);
 

@@ -78,10 +78,11 @@ export default function LoginPage() {
             {/* Title */}
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Login form
+                Sistema DineX
               </h1>
               <p className="text-gray-500 text-sm leading-relaxed">
-                Lorem Ipsum tem sido o texto padrão da indústria desde sempre.
+                Faça login para acessar o sistema de gestão de restaurante. 
+                Gerencie pedidos, cardápio e operações do seu negócio.
               </p>
             </div>
 
@@ -116,14 +117,14 @@ export default function LoginPage() {
                   htmlFor="password"
                   className="text-sm font-medium text-gray-700"
                 >
-                  Password
+                  Senha
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter password"
+                    placeholder="Digite sua senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500"
@@ -149,7 +150,7 @@ export default function LoginPage() {
                   type="button"
                   className="text-sm text-orange-500 hover:text-orange-600 font-medium"
                 >
-                  Forgot password?
+                  Esqueceu a senha?
                 </button>
               </div>
 
@@ -165,7 +166,9 @@ export default function LoginPage() {
 
             {/* Footer */}
             <div className="text-center mt-8">
-              <p className="text-sm text-gray-500">End user agreement</p>
+              <p className="text-sm text-gray-500">
+                © 2025 DineX. Sistema de Gestão para Restaurantes
+              </p>
             </div>
           </CardContent>
         </Card>

@@ -234,10 +234,7 @@ export default function DashboardPage() {
               <SelectItem value="90days">90 Days</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-            <Download className="h-4 w-4 mr-2" />
-            Baixar relatório
-          </Button>
+         
         </div>
       </div>
 

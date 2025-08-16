@@ -1,75 +1,92 @@
 @echo off
-echo ========================================
-echo    DINEX STANDALONE
-echo ========================================
+chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+cls
+echo.
+echo.
+echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+echo.
+echo    ═══════════════════════════════════════════════════════════
+echo    🚀  SISTEMA DINEX - MODO STANDALONE  🚀
+echo    ═══════════════════════════════════════════════════════════
+echo.
+echo    💡  Este script inicia o sistema DineX de forma simples
+echo    📁  Pasta atual: %CD%
+echo.
+echo    ═══════════════════════════════════════════════════════════
 echo.
 
-REM Criar arquivo de log
-set "logFile=run-standalone-log.txt"
-echo ======================================== > "%logFile%"
-echo    LOG STANDALONE - DINEX >> "%logFile%"
-echo    Data: %date% %time% >> "%logFile%"
-echo ======================================== >> "%logFile%"
-echo. >> "%logFile%"
-
-REM Iniciar servidor Next.js
-echo Iniciando servidor DineX...
-echo Iniciando servidor DineX... >> "%logFile%"
-start "DineX Server" cmd /k "npm start"
-
-echo Aguardando servidor iniciar...
-echo Aguardando servidor iniciar... >> "%logFile%"
-timeout /t 8
-
-echo Abrindo em modo standalone...
-echo Abrindo em modo standalone... >> "%logFile%"
-timeout /t 2
-
-REM Tentar abrir com Edge primeiro
-echo Tentando abrir com Edge...
-echo Tentando abrir com Edge... >> "%logFile%"
-start "" "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --app=http://localhost:3000 --start-fullscreen
-
-REM Se Edge não funcionar, tentar com Chrome
+REM Verificar Node.js
+node --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Edge nao encontrado, tentando Chrome...
-    echo Edge nao encontrado, tentando Chrome... >> "%logFile%"
-    start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --app=http://localhost:3000 --start-fullscreen
+    echo    ❌  Node.js não está instalado!
+    echo    🌐  Visite: https://nodejs.org/
+    pause
+    exit /b 1
 )
 
-REM Se Chrome não funcionar, tentar com Firefox
-if %errorlevel% neq 0 (
-    echo Chrome nao encontrado, tentando Firefox...
-    echo Chrome nao encontrado, tentando Firefox... >> "%logFile%"
-    start "" "C:\Program Files\Mozilla Firefox\firefox.exe" -kiosk http://localhost:3000
-)
-
-echo.
-echo ========================================
-echo    DINEX INICIADO EM MODO STANDALONE!
-echo ========================================
-echo.
-echo Servidor rodando em: http://localhost:3000
-echo Modo standalone ativado
+echo    ✅  Node.js verificado
 echo.
 
-echo ======================================== >> "%logFile%"
-echo    DINEX INICIADO EM MODO STANDALONE! >> "%logFile%"
-echo ======================================== >> "%logFile%"
-echo. >> "%logFile%"
-echo Servidor rodando em: http://localhost:3000 >> "%logFile%"
-echo Modo standalone ativado >> "%logFile%"
-echo. >> "%logFile%"
-
-echo Para parar: feche a janela do servidor
-echo Para sair do fullscreen: Alt+F4
+REM Verificar se o banco está configurado
+echo    💡  Certifique-se de que o banco de dados está configurado!
+echo    📋  Execute setup-database.bat se necessário
 echo.
-echo Log salvo em: %logFile%
-echo.
-echo ========================================
-echo    SUCESSO! STANDALONE ATIVADO!
-echo ========================================
-echo.
-echo Pressione qualquer tecla para fechar...
+echo    ═══════════════════════════════════════════════════════════
+echo    Pressione qualquer tecla para continuar...
 pause >nul
-exit /b 0
+
+cls
+echo.
+echo    ██████╗ ██╗███╗   ██╗███████╗██╗  ██╗
+echo    ██╔══██╗██║████╗  ██║██╔════╝╚██╗██╔╝
+echo    ██║  ██║██║██╔██╗ ██║█████╗  ╚███╔╝ 
+echo    ██║  ██║██║██║╚██╗██║██╔══╝  ██╔██╗ 
+echo    ██████╔╝██║██║ ╚████║███████╗██╔╝ ██╗
+echo    ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+echo.
+echo    ═══════════════════════════════════════════════════════════
+echo    🚀  INICIANDO SISTEMA DINEX
+echo    ═══════════════════════════════════════════════════════════
+echo.
+
+echo    🚀  Iniciando o sistema...
+echo    💡  O sistema será iniciado automaticamente
+echo    ⚠️  Para parar o sistema, pressione Ctrl+C
+echo.
+echo    ═══════════════════════════════════════════════════════════
+echo.
+
+REM Aguardar um pouco
+echo    ⏳  Aguardando inicialização...
+timeout /t 3 /nobreak >nul
+
+REM Abrir Edge no modo standalone
+echo    🌐  Abrindo Microsoft Edge no modo standalone...
+echo    💡  URL: http://localhost:3000
+echo.
+
+REM Abrir Edge no modo standalone (--new-window --app)
+start msedge --new-window --app="http://localhost:3000"
+
+echo    ✅  Edge aberto no modo standalone!
+echo    🚀  Sistema iniciando, aguarde...
+echo.
+
+REM Iniciar o sistema diretamente
+echo    🚀  Iniciando o sistema DineX...
+echo    💡  O servidor será iniciado neste terminal
+echo.
+echo    ═══════════════════════════════════════════════════════════
+echo    🎯  Sistema DineX iniciando...
+echo    ═══════════════════════════════════════════════════════════
+echo.
+
+REM Executar npm start diretamente (o script para aqui)
+npm start
