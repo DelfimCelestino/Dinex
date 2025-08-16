@@ -1,5 +1,6 @@
 import React from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { LicenseGuard } from "@/components/license-guard";
 
 export default function MainLayout({
   children,
@@ -7,8 +8,10 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <DashboardLayout>
-      {children}
-    </DashboardLayout>
+    <LicenseGuard>
+      <DashboardLayout>
+        {children}
+      </DashboardLayout>
+    </LicenseGuard>
   );
 }

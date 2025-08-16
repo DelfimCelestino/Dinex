@@ -46,6 +46,9 @@ model MenuItem {
   image       String?  // Caminho da imagem
   isActive    Boolean  @default(true)
   isFavorite  Boolean  @default(false)
+  hasStock    Boolean  @default(false) // Se o item tem controle de estoque
+  stockQuantity Int?   // Quantidade em estoque (null = sem controle)
+  minStockAlert Int?   // Alerta de estoque mínimo
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
@@ -143,4 +146,24 @@ enum OrderStatus {
   READY
   DELIVERED
   CANCELLED
+}
+
+model License {
+  id              String   @id @default(cuid())
+  licenseKey      String   @unique // Chave da licença (hash)
+  clientName      String   // Nome do cliente
+  clientEmail     String?  // Email do cliente
+  hardwareId      String   // ID único do hardware
+  machineName     String   // Nome da máquina
+  issuedAt        DateTime @default(now()) // Data de emissão
+  expiresAt       DateTime // Data de expiração
+  isActive        Boolean  @default(true)
+  lastValidation  DateTime @default(now()) // Última validação
+  validationCount Int      @default(0) // Contador de validações
+  maxValidations  Int      @default(100) // Máximo de validações permitidas
+  version         String   @default("1.0.0") // Versão do sistema
+  features        String   // Features habilitadas (JSON)
+  signature       String   // Assinatura digital da licença
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
